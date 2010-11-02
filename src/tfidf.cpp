@@ -67,9 +67,10 @@ int TfIdf::save(FILE* file, int minDf, int maxDf) const
   for (int docId = 0; docId < docCount; ++docId) {
     double sum = 0.0;
     for (Iter it = tf[docId].begin(); it != tf[docId].end(); ++it) {
-      sum += it->second * log((double)docCount / df[it->first]);
+      double v = it->second * log((double)docCount / df[it->first]);
+      sum += v * v;
     }
-    double inv = 1.0 / sum;
+    double inv = 1.0 / sqrt(sum);
     for (Iter it = tf[docId].begin(); it != tf[docId].end(); ++it) {
       fprintf(file, "%.8f\n", inv * it->second * log((double)docCount / df[it->first]));
     }

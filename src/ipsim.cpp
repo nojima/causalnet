@@ -60,7 +60,7 @@ void InnerProductSimilarity::calc(double minSim)
   rowPtr.push_back(0);
   for (int docId = 0; docId < docCount; ++docId) {
     if (docId > 0) fprintf(stderr, "\r");
-    fprintf(stderr, "Progress %d / %d, nnz = %d", docId, docCount, sim.size());
+    fprintf(stderr, "Progress %d / %d, nnz = %zd", docId, docCount, sim.size());
 
     ip.clear();
     for (int i = docPtr[docId]; i < docPtr[docId+1]; ++i) {
@@ -104,6 +104,6 @@ int main()
 {
   InnerProductSimilarity ipsim;
   ipsim.load(stdin);
-  ipsim.calc(0.01);
+  ipsim.calc(0.1);
   ipsim.save(stdout);
 }
