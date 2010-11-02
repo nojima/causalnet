@@ -69,8 +69,9 @@ void InnerProductSimilarity::calc(double minSim)
   Map ip;
   rowPtr.push_back(0);
   for (int docId = 0; docId < docCount; ++docId) {
-    if (docId > 0) fprintf(stderr, "\r");
-    fprintf(stderr, "(%d%%) %d/%d, nnz = %zd", 100*(docId+1)/docCount, docId+1, docCount, sim.size());
+    if (docId > 0) { fprintf(stderr, "\r"); }
+    double percent = 100.0 * (docId+1) / docCount;
+    fprintf(stderr, "(%.1f%%) %d/%d, nnz = %zd", percent, docId+1, docCount, sim.size());
 
     ip.clear();
     for (int i = docPtr[docId]; i < docPtr[docId+1]; ++i) {
