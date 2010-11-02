@@ -60,7 +60,7 @@ void InnerProductSimilarity::calc(double minSim)
   rowPtr.push_back(0);
   for (int docId = 0; docId < docCount; ++docId) {
     if (docId > 0) fprintf(stderr, "\r");
-    fprintf(stderr, "Progress %d / %d, nnz = %zd", docId, docCount, sim.size());
+    fprintf(stderr, "(%d%%) %d/%d, nnz = %zd", 100*(docId+1)/docCount, docId+1, docCount, sim.size());
 
     ip.clear();
     for (int i = docPtr[docId]; i < docPtr[docId+1]; ++i) {
@@ -81,6 +81,7 @@ void InnerProductSimilarity::calc(double minSim)
     }
     rowPtr.push_back(rowPtr.back() + count);
   }
+  fprintf(stderr, "\n");
 
   delete [] tfidf2;
   delete [] docInd;
