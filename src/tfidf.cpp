@@ -7,6 +7,7 @@ using namespace std;
 
 struct TfIdf {
   typedef map<int, int> Map;
+  typedef Map::iterator Iter;
 
   TfIdf(): docCount(0), wordCount(0), tf(NULL), df(NULL) {}
   ~TfIdf();
@@ -39,7 +40,7 @@ void TfIdf::load(FILE* file)
 
 void TfIdf::addWord(int docId, int wordId)
 {
-  Map::iterator it = tf[docId].lower_bound(wordId);
+  Iter it = tf[docId].lower_bound(wordId);
   if (it != tf[docId].end() && it->first == wordId) {
     it->second += 1;
   } else {
@@ -51,25 +52,44 @@ void TfIdf::addWord(int docId, int wordId)
 int TfIdf::save(FILE* file, int minDf, int maxDf) const
 {
   if (file == NULL) return -1;
-  fprintf(file, "%d\t%d\n", docCount, wordCount);
-  vector<double> tfidf;
-  vector<int> index;
+  int nnz = 0;
   for (int docId = 0; docId < docCount; ++docId) {
-    double sum = 0.0;
-    index.clear();
-    tfidf.clear();
-    for (Map::iterator it = tf[docId].begin(); it != tf[docId].end(); ++it) {
+    for (Iter it = tf[docId].begin(); it != tf[docId].end(); ) {
       if (minDf <= df[it->first] && df[it->first] <= maxDf) {
-        index.push_back(it->first);
-        tfidf.push_back(it->second * log((double)docCount / df[it->first]));
-        sum += tfidf.back();
+        ++nnz;
+        ++it;
+      } else {
+        tf[docId].erase(it++);
       }
     }
+  }
+  fprintf(file, "%d\t%d\t%d\n\n", docCount, wordCount, nnz);
+  for (int docId = 0; docId < docCount; ++docId) {
+    double sum = 0.0;
+    for (Iter it = tf[docId].begin(); it != tf[docId].end(); ++it) {
+      sum += it->second * log((double)docCount / df[it->first]);
+    }
     double inv = 1.0 / sum;
-    for (size_t k = 0; k < tfidf.size(); ++k) {
-      fprintf(file, "%d\t%d\t%f\n", docId, index[k], inv * tfidf[k]);
+    for (Iter it = tf[docId].begin(); it != tf[docId].end(); ++it) {
+      fprintf(file, "%.8f\n", inv * it->second * log((double)docCount / df[it->first]));
     }
   }
+  fprintf(file, "\n");
+  int* ptr = new int[docCount+1];
+  ptr[0] = 0;
+  for (int docId = 0; docId < docCount; ++docId) {
+    int count = 0;
+    for (Iter it = tf[docId].begin(); it != tf[docId].end(); ++it) {
+      fprintf(file, "%d\n", it->first);
+      ++count;
+    }
+    ptr[docId+1] = ptr[docId] + count;
+  }
+  fprintf(file, "\n");
+  for (int docId = 0; docId < docCount + 1; ++docId) {
+    fprintf(file, "%d\n", ptr[docId]);
+  }
+  fprintf(file, "\n");
   return 0;
 }
 

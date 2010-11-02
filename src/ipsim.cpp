@@ -1,69 +1,102 @@
 #include <cstdio>
 #include <map>
+#include <vector>
 using namespace std;
 
-class InnerProductSimilarity {
-  public:
-    InnerProductSimilarity(): n(0), m(0), a(NULL), sim(NULL) {}
-    void load(FILE* file);
-    void calc();
-    int save(FILE* file) const;
+struct InnerProductSimilarity {
+  void load(FILE* file);
+  void calc(double minSim);
+  int save(FILE* file) const;
 
-  private:
-    typedef map<int, double> Map;
-    int n, m;
-    Map* a;
-    Map* sim;
+  int docCount, wordCount, nnz;
+  double* tfidf;
+  int* wordInd;
+  int* docPtr;
+
+  vector<double> sim;
+  vector<int> colInd;
+  vector<int> rowPtr;
 };
 
 void InnerProductSimilarity::load(FILE* file)
 {
-  fscanf(file, "%d%d", &n, &m);
-  a = new Map[m];
-  sim = new Map[n];
-  int i, j;
-  double aij;
-  while (fscanf(file, "%d%d%lf", &i, &j, &aij) != EOF) {
-    a[j][i] = aij;
-  }
+  fscanf(file, "%d%d%d", &docCount, &wordCount, &nnz);
+  tfidf = new double[nnz];
+  wordInd = new int[nnz];
+  docPtr = new int[docCount+1];
+  for (int k = 0; k < nnz; ++k) { fscanf(file, "%lf", &tfidf[k]); }
+  for (int k = 0; k < nnz; ++k) { fscanf(file, "%d", &wordInd[k]); }
+  for (int k = 0; k <= docCount; ++k) { fscanf(file, "%d", &docPtr[k]); }
 }
 
-template<typename Iter>
-inline Iter next(Iter it) { return ++it; }
-
-void InnerProductSimilarity::calc()
+void InnerProductSimilarity::calc(double minSim)
 {
-  int nnz = 0;
-  for (int j = 0; j < m; ++j) {
-    for (Map::iterator it1 = a[j].begin(); it1 != a[j].end(); ++it1) {
-      int i = it1->first;
-      double aij = it1->second;
-      for (Map::iterator it2 = next(it1); it2 != a[j].end(); ++it2) {
-        int k = it2->first;
-        double akj = it2->second;
-        Map::iterator it3 = sim[i].lower_bound(k);
-        if (it3 != sim[i].end() && it3->first == k) {
-          it3->second += aij * akj;
-        } else {
-          sim[i].insert(it3, make_pair(k, aij * akj));
-          ++nnz;
-        }
+  // transpose
+  double* tfidf2 = new double[nnz];
+  int* docInd = new int[nnz];
+  int* wordPtr = new int[wordCount+1];
+  int* freq = new int[wordCount];
+  fill(freq, freq + wordCount, 0);
+  for (int i = 0; i < nnz; ++i) { freq[wordInd[i]] += 1; }
+  wordPtr[0] = 0;
+  for (int wordId = 0; wordId < wordCount; ++wordId) {
+    wordPtr[wordId+1] = wordPtr[wordId] + freq[wordId];
+  }
+  fill(freq, freq + wordCount, 0);
+  for (int docId = 0; docId < docCount; ++docId) {
+    for (int i = docPtr[docId]; i < docPtr[docId+1]; ++i) {
+      int wordId = wordInd[i];
+      int index = wordPtr[wordId] + freq[wordId];
+      tfidf2[index] = tfidf[i];
+      docInd[index] = docId;
+      freq[wordId] += 1;
+    }
+  }
+  delete [] freq;
+
+  // inner product
+  typedef map<int, double> Map;
+  Map ip;
+  rowPtr.push_back(0);
+  for (int docId = 0; docId < docCount; ++docId) {
+    if (docId > 0) fprintf(stderr, "\r");
+    fprintf(stderr, "Progress %d / %d, nnz = %d", docId, docCount, sim.size());
+
+    ip.clear();
+    for (int i = docPtr[docId]; i < docPtr[docId+1]; ++i) {
+      int wordId = wordInd[i];
+      double v1 = tfidf[i];
+      for (int j = wordPtr[wordId]; j < wordPtr[wordId+1]; ++j) {
+        double v2 = tfidf2[j];
+        ip[docInd[j]] += v1 * v2;
       }
     }
-    printf("nnz = %d\n", nnz);
+    int count = 0;
+    for (Map::iterator it = ip.begin(); it != ip.end(); ++it) {
+      if (it->second >= minSim) {
+        colInd.push_back(it->first);
+        sim.push_back(it->second);
+        ++count;
+      }
+    }
+    rowPtr.push_back(rowPtr.back() + count);
   }
+
+  delete [] tfidf2;
+  delete [] docInd;
+  delete [] wordPtr;
 }
 
 int InnerProductSimilarity::save(FILE* file) const
 {
   if (file == NULL) { return -1; }
-  fprintf(file, "%d\n", n);
-  for (int i = 0; i < n; ++i) {
-    for (Map::iterator it = sim[i].begin(); it != sim[i].end(); ++it) {
-      fprintf(file, "%d\t%d\t%f\n", i, it->first, it->second);
-      fprintf(file, "%d\t%d\t%f\n", it->first, i, it->second);
-    }
-  }
+  fprintf(file, "%d %d\n\n", docCount, rowPtr[docCount]);
+  for (int i = 0; i < rowPtr[docCount]; ++i) { fprintf(file, "%f\n", sim[i]); }
+  fprintf(file, "\n");
+  for (int i = 0; i < rowPtr[docCount]; ++i) { fprintf(file, "%d\n", colInd[i]); }
+  fprintf(file, "\n");
+  for (int i = 0; i <= docCount; ++i) { fprintf(file, "%d\n", rowPtr[i]); }
+  fprintf(file, "\n");
   return 0;
 }
 
@@ -71,6 +104,6 @@ int main()
 {
   InnerProductSimilarity ipsim;
   ipsim.load(stdin);
-  ipsim.calc();
+  ipsim.calc(0.01);
   ipsim.save(stdout);
 }
