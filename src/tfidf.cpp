@@ -82,6 +82,7 @@ int TfIdf::save(FILE* file, int minDf, int maxDf) const
 
   int* ptr = new int[docCount+1];
   ptr[0] = 0;
+
   for (int docId = 0; docId < docCount; ++docId) {
     int count = 0;
     for (Iter it = tf[docId].begin(); it != tf[docId].end(); ++it) {
@@ -97,7 +98,7 @@ int TfIdf::save(FILE* file, int minDf, int maxDf) const
   }
   fprintf(file, "\n");
 
-  delete ptr;
+  delete [] ptr;
 
   return 0;
 }
