@@ -92,7 +92,7 @@ int InnerProductSimilarity::save(FILE* file) const
 {
   if (file == NULL) { return -1; }
   fprintf(file, "%d %d\n\n", docCount, rowPtr[docCount]);
-  for (int i = 0; i < rowPtr[docCount]; ++i) { fprintf(file, "%f\n", sim[i]); }
+  for (int i = 0; i < rowPtr[docCount]; ++i) { fprintf(file, "%.8f\n", sim[i]); }
   fprintf(file, "\n");
   for (int i = 0; i < rowPtr[docCount]; ++i) { fprintf(file, "%d\n", colInd[i]); }
   fprintf(file, "\n");
