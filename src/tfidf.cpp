@@ -52,6 +52,7 @@ void TfIdf::addWord(int docId, int wordId)
 int TfIdf::save(FILE* file, int minDf, int maxDf) const
 {
   if (file == NULL) return -1;
+
   int nnz = 0;
   for (int docId = 0; docId < docCount; ++docId) {
     for (Iter it = tf[docId].begin(); it != tf[docId].end(); ) {
@@ -63,7 +64,9 @@ int TfIdf::save(FILE* file, int minDf, int maxDf) const
       }
     }
   }
+
   fprintf(file, "%d\t%d\t%d\n\n", docCount, wordCount, nnz);
+
   for (int docId = 0; docId < docCount; ++docId) {
     double sum = 0.0;
     for (Iter it = tf[docId].begin(); it != tf[docId].end(); ++it) {
@@ -76,6 +79,7 @@ int TfIdf::save(FILE* file, int minDf, int maxDf) const
     }
   }
   fprintf(file, "\n");
+
   int* ptr = new int[docCount+1];
   ptr[0] = 0;
   for (int docId = 0; docId < docCount; ++docId) {
@@ -87,10 +91,14 @@ int TfIdf::save(FILE* file, int minDf, int maxDf) const
     ptr[docId+1] = ptr[docId] + count;
   }
   fprintf(file, "\n");
+
   for (int docId = 0; docId < docCount + 1; ++docId) {
     fprintf(file, "%d\n", ptr[docId]);
   }
   fprintf(file, "\n");
+
+  delete ptr;
+
   return 0;
 }
 
