@@ -4,6 +4,9 @@
 using namespace std;
 
 struct InnerProductSimilarity {
+  InnerProductSimilarity(): tfidf(NULL), wordInd(NULL), docPtr(NULL) {}
+  ~InnerProductSimilarity();
+  
   void load(FILE* file);
   void calc(double minSim);
   int save(FILE* file) const;
@@ -17,6 +20,13 @@ struct InnerProductSimilarity {
   vector<int> colInd;
   vector<int> rowPtr;
 };
+
+InnerProductSimilarity::~InnerProductSimilarity()
+{
+  delete [] tfidf;
+  delete [] wordInd;
+  delete [] docPtr;
+}
 
 void InnerProductSimilarity::load(FILE* file)
 {
